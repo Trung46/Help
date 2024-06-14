@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Settings</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+  <div id="app" v-if="settings" class="center">
+    <h3>Settings</h3>
+    <div class="settings">
+      <div class="settinginput" v-for="(value, key) in userData" :key="key">
+        <div class="setting-label">{{ key }}:</div>
+        <div v-if="editingKey === key">
+          <input v-model="editableData[key]" type="text">
+          <button type="button" @click="save(key)">Save</button>
+          <button type="button" @click="cancelEdit">Cancel</button>
+        </div>
+        <div v-else>
+          <div class="setting-value">{{ value }}</div>
+          <button type="button" class="edit-button" @click="edit(key)">Edit</button>
+        </div>
+      </div>
+      <div class="setting">
+        <div class="setting-label">Notifications:</div>
+        <label class="switch">
+          <input type="checkbox">
+          <span class="slider round"></span>
+        </label>
+        <div class="setting-label">Click to toggle</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const app = new Vue({
+      el: '#app',
+      data: {
+        settings: true,
+        editingKey: null,
+        userData: {
+          Username: '[User\'s username]',
+          'Full Name': '[User\'s full name]',
+          'Phone Number': '[User\'s phone number]',
+          Email: '[User\'s email]',
+          Password: '[User\'s password]',
+        },
+        editableData: {}
+      },
+      methods: {
+        edit(key) {
+          this.editingKey = key;
+          this.editableData[key] = this.userData[key];
+        },
+        save(key) {
+          const updatedData = { ...this.userData, ...this.editableData };
+          axios.post('/users/update', {
+            user_name: updatedData.Username,
+            full_name: updatedData['Full Name'],
+            phone_number: updatedData['Phone Number'],
+            email: updatedData.Email,
+            password: updatedData.Password,
+          }).then(response => {
+            this.userData[key] = this.editableData[key];
+            this.editingKey = null;
+            alert('Update successful');
+          }).catch(error => {
+            console.error('There was an error!', error);
+          });
+        },
+        cancelEdit() {
+          this.editingKey = null;
+        }
+      }
+    });
+
+    function fetchUserData(userId) {
+      axios.get(`/users/${userId}`)
+        .then(response => {
+          const userData = response.data;
+          app.userData = {
+            Username: userData.user_name,
+            'Full Name': userData.full_name,
+            'Phone Number': userData.phone_number,
+            Email: userData.email,
+            Password: userData.password
+          };
+        })
+        .catch(error => {
+          console.error('Error fetching user data:', error);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      localStorage.setItem('userId', 1); // Set userId to 1 in local storage
+      const userId = localStorage.getItem('userId');
+      if (userId) {
+        fetchUserData(userId);
+      }
+    });
+  </script>
+</body>
+</html>
